@@ -1,0 +1,140 @@
+import Data.Maybe
+import Sound.Tidal.MIDI.Context
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (50/60/3)
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+m2 <- midiStream devices "Pro24 MIDI" 2 synthController
+
+-- Silence
+
+hush
+
+m1 $ silence
+m2 $ silence
+
+-- Composition
+
+d1
+  -- $ slow 4 $ linger (1/6)
+  -- $ every 5 (zoom (0.25, 0.75))
+  -- $ brak
+  -- $ spread (rarely $) [fast 2, scramble 2, linger (1/6)]
+  -- $ iter 6
+  -- $ scramble 6
+  $ slow 2
+  $ stack
+    [ stack [
+        -- note $ never (octShift (-1)) melodyA1,
+        -- note $ always (octShift 1) melodyA2
+        slow 4 $ note $ sometimes (octShift (1)) melodyB1
+      ]
+    , stack [
+      -- slow 4 $ note ((subtract 12) <$> melodyChordProgression),
+      slow 4 $ fast 24 $ n $ (sometimes $ octShift (-2)) $ melodyChordArp (1/3/2) 1 [0..5]
+    ]
+  ] # s "supervibe" # legato 1.1
+
+-- Phase shifting (for inspiration):
+d1 $ stack [ (((discretise 8 $ slow 48 $ run 12)/12) ~> ) $ sound "cp ~ cp ~",
+    sound "sn:2" ]
+
+-- Melodies & Harmonics
+
+inScale :: [Int] -> Int -> Pattern Int -> Pattern Int
+inScale scale transposition = fmap noteInScale
+  where note x = x `mod` (length scale)
+        octave x = x `div` (length scale)
+        noteInScale x = (scale !!! note x) + 12 * (octave x) + transposition
+abMinor = inScale Scales.minor 8
+ebMinor = inScale Scales.minor 3 -- Dominant
+cbMajor = inScale Scales.major (-1) -- Relative
+gbMajor = inScale Scales.major 6 -- Dominant of relative
+csharpMinor = inScale Scales.minor 1 -- Subdominant
+inKey = abMinor
+harmonized n = superimpose (fmap (+ n))
+inversed = fmap ((- 1) *)
+octShift :: Num a => Pattern a -> Pattern a -> Pattern a
+octShift octaveP p = (+) <$> p <*> ((* 12) <$> octaveP)
+arp :: Num a => Time -> [Int] -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
+arp noteDur arp chords noteP idxP = arpenchord noteDur expandedChords noteP idxP
+  where expandedChords = map (expandChord arp) chords
+expandChord :: Num a => [Int] -> [a] -> [a]
+expandChord selections chord = map select selections
+  where notesInChord = length chord
+        octave idx = fromIntegral $ idx `div` notesInChord
+        select idx = chord !!! idx + (octave idx) * 7
+flatpat' :: Num a => Time -> Pattern [a] -> Pattern a
+flatpat' noteDur p = stack [rotR (noteDur * fromIntegral i) $ unMaybe $ fmap (`maybeInd` i) p | i <- [0..24]]
+  where maybeInd xs i | i < length xs = Just $ xs !!! i
+                      | otherwise = Nothing
+        unMaybe = (fromJust <$>) . filterValues isJust
+arpenchord :: Num a => Time -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
+arpenchord noteDur chords transP chordP = flatpat' noteDur $ (Chords.chordate chords) <$> transP <*> chordP
+melodyA1 = inKey $ cat
+  [ "0@2 [2 1] 0 [-2 0] [2 1]"
+  , "2 -1 [1 0] -1 -3 [4 3]"
+  , "2@2 4 2 [1 0] [-1 -2]"
+  , "-3 0 [-1 -2] -3 -1 [0 1]"
+  ]
+melodyA2 = inKey $ cat
+  [ "~ [5 4] [2 1] 2 -2 ~"
+  , "~ [4 3] [1 0] 1 -3 ~"
+  , "~ [7 6] [4 3] 5 0 ~"
+  , "~ [2 1] [-1 -2] -1 -2 ~"
+  ]
+melodyB1 = inKey $ stack
+  [ "0 [1 2] [3 4] 5 2 [7 6] 5@2 ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [4 3] [2 1]"
+  , "~ ~ ~ ~ ~ ~ ~ 2 [6 4] 1 2 1 2 5 4 5@2 ~ ~ ~ ~ ~ ~ ~"
+  , "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [2 5] 6 7 [6 5] 4@2 2"
+  ]
+melodyChordProgression = inKey $
+  "[0,2,5]@7 [-1,2,4] [-1,1,4]@2 [-1,2,4] [-1,1,4]\
+  \ [2,5,7]@2 [2,4,7] [2,5,7]@3 [-3,-1,2] [-3,0,2] [-3,-1,2]@3 [-3,0,2]"
+melodyChordArp :: Ratio Integer -> Int -> [Int] -> Pattern Int
+melodyChordArp noteLength repetitions arpP = inKey $ arp noteLength arpP chords baseP $ chordP
+  where baseP = listToPat $ replicate repetitions 0
+        chords = [[0,2,5], [-1,2,4], [-1,1,4], [-1,2,4], [-1,1,4], [2,5,7], [2,4,7], [2,5,7], [-3,-1,2], [-3,0,2], [-3,-1,2], [-3,0,2]]
+        chordP = "<0 0 0 0 0 0 0 1 2 2 3 4 5 5 6 7 7 7 8 9 10 10 10 11>"
+
+arp :: Num a => Time -> [Int] -> Pattern a -> Pattern a
+arp dur arpPat pattern = Pattern $ \arc -> (arp' arc dur arpPat pattern)
+arp' :: Num a => Arc -> Time -> [Int] -> Pattern a -> [Event a]
+arp' (s, e) dur arpPat pattern
+  | s >= e = []
+  | otherwise = [noteInTime] ++ (arp' (newEnd, e) dur arpPat pattern)
+    where notesPerCycle = 1.0 / dur
+          idx = floor (notesPerCycle * s)
+          arpIdx = arpPat!!(idx `mod` (length arpPat))
+          events = arc pattern (s, e)
+          (_, _, note) = events!!(arpIdx `mod` (length events))
+          newEnd = s + dur
+          noteInTime = ((s, newEnd), (s, newEnd), note)
+
+altArp :: Num a => Time -> [Int] -> Pattern a -> Pattern a
+altArp dur arpPat pattern = fastcat (fmap (\(interval, idx) -> noteAtIndex interval idx pattern) intervals)
+  where numOfNotes = floor (1.0 / dur)
+        intervals = intervalsAndIndices 0 dur arpPat
+noteAtIndex :: Num a => Arc -> Int -> Pattern a -> Pattern a
+noteAtIndex interval idx pattern = Pattern $ \arc -> [mapSnd' (\_ -> interval) (mapFst' (\_ -> arc) (noteAtIndex' interval idx pattern))]
+noteAtIndex' :: Num a => Arc -> Int -> Pattern a -> Event a
+noteAtIndex' arc' idx pattern = events!!(idx `mod` (length events))
+  where events = arc pattern arc'
+intervalsAndIndices :: Int -> Time -> [Int] -> [(Arc, Int)]
+intervalsAndIndices idx dur arpPat
+  | pos >= 1 = []
+  | otherwise = [((pos, pos + dur), arpIdx)] ++ intervalsAndIndices (idx + 1) dur arpPat
+    where arpIdx = arpPat!!(idx `mod` (length arpPat))
+          pos = dur * (toRational idx)
+
+-- Exposition       -> Development                -> Recapitulation
+-- Mel#1  -> Mel#2  -> Arp ............
+-- Ab min -> C# min -> Gb maj -> Cb maj -> Eb min -> Ab min
+--
+-- Nord:31
+
+-- A (A#/Bb) B C (C#/Db) D (D#/Eb) E F (F#/Gb) G (G#/Ab)
