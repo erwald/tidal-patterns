@@ -30,6 +30,7 @@ d1
   -- $ spread (rarely $) [fast 2, scramble 2, linger (1/6)]
   -- $ iter 6
   -- $ scramble 6
+  -- $ unit "cycle"
   $ slow 2
   $ stack
     [ stack [
