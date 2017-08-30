@@ -52,9 +52,8 @@ d1 $ stack [ (((discretise 8 $ slow 48 $ run 12)/12) ~> ) $ sound "cp ~ cp ~",
 
 inScale :: [Int] -> Int -> Pattern Int -> Pattern Int
 inScale scale transposition = fmap noteInScale
-  where note x = x `mod` (length scale)
-        octave x = x `div` (length scale)
-        noteInScale x = (scale !!! note x) + 12 * (octave x) + transposition
+  where octave x = x `div` length scale
+        noteInScale x = (scale !!! x) + 12 * octave x + transposition
 abMinor = inScale Scales.minor 8
 ebMinor = inScale Scales.minor 3 -- Dominant
 cbMajor = inScale Scales.major (-1) -- Relative
