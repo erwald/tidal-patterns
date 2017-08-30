@@ -107,36 +107,6 @@ melodyChordArp noteLength repetitions arpP = inKey $ arp noteLength arpP chords 
         chords = [[0,2,5], [-1,2,4], [-1,1,4], [-1,2,4], [-1,1,4], [2,5,7], [2,4,7], [2,5,7], [-3,-1,2], [-3,0,2], [-3,-1,2], [-3,0,2]]
         chordP = "<0 0 0 0 0 0 0 1 2 2 3 4 5 5 6 7 7 7 8 9 10 10 10 11>"
 
-arp :: Num a => Time -> [Int] -> Pattern a -> Pattern a
-arp dur arpPat pattern = Pattern $ \arc -> (arp' arc dur arpPat pattern)
-arp' :: Num a => Arc -> Time -> [Int] -> Pattern a -> [Event a]
-arp' (s, e) dur arpPat pattern
-  | s >= e = []
-  | otherwise = [noteInTime] ++ (arp' (newEnd, e) dur arpPat pattern)
-    where notesPerCycle = 1.0 / dur
-          idx = floor (notesPerCycle * s)
-          arpIdx = arpPat!!(idx `mod` (length arpPat))
-          events = arc pattern (s, e)
-          (_, _, note) = events!!(arpIdx `mod` (length events))
-          newEnd = s + dur
-          noteInTime = ((s, newEnd), (s, newEnd), note)
-
-altArp :: Num a => Time -> [Int] -> Pattern a -> Pattern a
-altArp dur arpPat pattern = fastcat (fmap (\(interval, idx) -> noteAtIndex interval idx pattern) intervals)
-  where numOfNotes = floor (1.0 / dur)
-        intervals = intervalsAndIndices 0 dur arpPat
-noteAtIndex :: Num a => Arc -> Int -> Pattern a -> Pattern a
-noteAtIndex interval idx pattern = Pattern $ \arc -> [mapSnd' (\_ -> interval) (mapFst' (\_ -> arc) (noteAtIndex' interval idx pattern))]
-noteAtIndex' :: Num a => Arc -> Int -> Pattern a -> Event a
-noteAtIndex' arc' idx pattern = events!!(idx `mod` (length events))
-  where events = arc pattern arc'
-intervalsAndIndices :: Int -> Time -> [Int] -> [(Arc, Int)]
-intervalsAndIndices idx dur arpPat
-  | pos >= 1 = []
-  | otherwise = [((pos, pos + dur), arpIdx)] ++ intervalsAndIndices (idx + 1) dur arpPat
-    where arpIdx = arpPat!!(idx `mod` (length arpPat))
-          pos = dur * (toRational idx)
-
 -- Notes
 
 -- Exposition       -> Development                -> Recapitulation
