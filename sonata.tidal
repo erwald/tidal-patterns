@@ -1,8 +1,12 @@
+-- Imports
+
 import Data.Maybe
 import Sound.Tidal.MIDI.Context
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Chords as Chords
 import qualified Sound.Tidal.Scales as Scales
+
+-- Config
 
 cps (50/60/3)
 
@@ -130,6 +134,8 @@ intervalsAndIndices idx dur arpPat
   | otherwise = [((pos, pos + dur), arpIdx)] ++ intervalsAndIndices (idx + 1) dur arpPat
     where arpIdx = arpPat!!(idx `mod` (length arpPat))
           pos = dur * (toRational idx)
+
+-- Notes
 
 -- Exposition       -> Development                -> Recapitulation
 -- Mel#1  -> Mel#2  -> Arp ............
