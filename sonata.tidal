@@ -18,8 +18,8 @@ m2 <- midiStream devices "Pro24 MIDI" 2 synthController
 
 hush
 
-m1 $ silence
-m2 $ silence
+m1 silence
+m2 silence
 
 -- Composition
 
@@ -78,23 +78,23 @@ withBass = superimpose . toBass
 groupByTime' :: Pattern a -> Pattern [a]
 groupByTime' p = Pattern $ \(s, e) -> groupByTime $ segment' $ arc p (s, e)
 select :: Parseable a => Num a => Pattern a -> Pattern Int -> Pattern a
-select harmonyP selectP = (\idx xs -> xs !!! idx + 12 * octave idx xs) <$> selectP <*> (groupByTime' harmonyP)
+select harmonyP selectP = (\idx xs -> xs !!! idx + 12 * octave idx xs) <$> selectP <*> groupByTime' harmonyP
   where octave idx xs = fromIntegral $ idx `div` length xs
 arp :: Num a => Time -> [Int] -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
-arp noteDur arp chords noteP idxP = arpenchord noteDur expandedChords noteP idxP
+arp noteDur arp chords = arpenchord noteDur expandedChords
   where expandedChords = map (expandChord arp) chords
 expandChord :: Num a => [Int] -> [a] -> [a]
 expandChord selections chord = map select selections
   where notesInChord = length chord
         octave idx = fromIntegral $ idx `div` notesInChord
-        select idx = chord !!! idx + (octave idx) * 7
+        select idx = chord !!! idx + octave idx * 7
 flatpat' :: Num a => Time -> Pattern [a] -> Pattern a
 flatpat' noteDur p = stack [rotR (noteDur * fromIntegral i) $ unMaybe $ fmap (`maybeInd` i) p | i <- [0..24]]
   where maybeInd xs i | i < length xs = Just $ xs !!! i
                       | otherwise = Nothing
         unMaybe = (fromJust <$>) . filterValues isJust
 arpenchord :: Num a => Time -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
-arpenchord noteDur chords transP chordP = flatpat' noteDur $ (Chords.chordate chords) <$> transP <*> chordP
+arpenchord noteDur chords transP chordP = flatpat' noteDur $ Chords.chordate chords <$> transP <*> chordP
 melodyA1 :: Pattern Int
 melodyA1 = inKey $ cat
   [ "0@2 [2 1] 0 [-2 0] [2 1]"
@@ -116,15 +116,15 @@ melodyB1 = slow 4 $ inKey $ stack
   , "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [2 5] 6 7 [6 5] 4@2 2"
   ]
 melodyChordProgression :: Pattern Int
-melodyChordProgression = slow 4 $ inKey $
+melodyChordProgression = slow 4 $ inKey
   "[0,2,5]@7 [-1,2,4] [-1,1,4]@2 [-1,2,4] [-1,1,4]\
   \ [2,5,7]@2 [2,4,7] [2,5,7]@3 [-3,-1,2] [-3,0,2] [-3,-1,2]@3 [-3,0,2]"
 melodyChordArp :: Ratio Integer -> Int -> [Int] -> Pattern Int
-melodyChordArp noteLength repetitions arpP = slow 4 $ fast 24 $ inKey $ arpeggio
+melodyChordArp noteLength repetitions arpP = slow 4 $ fast 24 $ inKey arpeggio
   where baseP = listToPat $ replicate repetitions 0
         chords = [[0,2,5], [-1,2,4], [-1,1,4], [-1,2,4], [-1,1,4], [2,5,7], [2,4,7], [2,5,7], [-3,-1,2], [-3,0,2], [-3,-1,2], [-3,0,2]]
         chordP = "<0 0 0 0 0 0 0 1 2 2 3 4 5 5 6 7 7 7 8 9 10 10 10 11>"
-        arpeggio = arp noteLength arpP chords baseP $ chordP
+        arpeggio = arp noteLength arpP chords baseP chordP
 
 -- Notes
 
