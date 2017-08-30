@@ -34,14 +34,17 @@ d1
   $ slow 2
   $ stack
     [ stack [
-        -- note $ never (octShift (-1)) melodyA1,
-        -- note $ always (octShift 1) melodyA2
-        slow 4 $ note $ sometimes (octShift (1)) melodyB1
+        note $ never (octShift (-1)) melodyA1,
+        note $ always (octShift 1) melodyA2
+        -- note $ never (octShift (1)) melodyB1
       ]
     , stack [
-      -- slow 4 $ note ((subtract 12) <$> melodyChordProgression),
-      slow 4 $ n $ (sometimes $ octShift (-2)) $ melodyChordArp (1/3/2) 1 [0..5]
-    ]
+        -- note $ octShift (-1) $ melodyChordProgression
+        -- note $ select melodyChordProgression "[[0 2 1 5 4 1](9,11)]"
+        -- note $ octShift (-1) $ select melodyChordProgression "[[0 1 2 3 4 5 6 7](7,11)]*3",
+        -- note $ octShift (-3) $ select melodyChordProgression "[0 2 1]"
+        -- note $ (always $ octShift (-3)) $ melodyChordArp (1/3/2) 1 ([0..2] ++ [3,2..1])
+      ]
   ] # s "supervibe" # legato 1.1
 
 -- Phase shifting (for inspiration):
@@ -107,20 +110,21 @@ melodyA2 = inKey $ cat
   , "~ [2 1] [-1 -2] -1 -2 ~"
   ]
 melodyB1 :: Pattern Int
-melodyB1 = inKey $ stack
+melodyB1 = slow 4 $ inKey $ stack
   [ "0 [1 2] [3 4] 5 2 [7 6] 5@2 ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [4 3] [2 1]"
   , "~ ~ ~ ~ ~ ~ ~ 2 [6 4] 1 2 1 2 5 4 5@2 ~ ~ ~ ~ ~ ~ ~"
   , "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [2 5] 6 7 [6 5] 4@2 2"
   ]
 melodyChordProgression :: Pattern Int
-melodyChordProgression = inKey $
+melodyChordProgression = slow 4 $ inKey $
   "[0,2,5]@7 [-1,2,4] [-1,1,4]@2 [-1,2,4] [-1,1,4]\
   \ [2,5,7]@2 [2,4,7] [2,5,7]@3 [-3,-1,2] [-3,0,2] [-3,-1,2]@3 [-3,0,2]"
 melodyChordArp :: Ratio Integer -> Int -> [Int] -> Pattern Int
-melodyChordArp noteLength repetitions arpP = inKey $ fast 24 $ arp noteLength arpP chords baseP $ chordP
+melodyChordArp noteLength repetitions arpP = slow 4 $ fast 24 $ inKey $ arpeggio
   where baseP = listToPat $ replicate repetitions 0
         chords = [[0,2,5], [-1,2,4], [-1,1,4], [-1,2,4], [-1,1,4], [2,5,7], [2,4,7], [2,5,7], [-3,-1,2], [-3,0,2], [-3,-1,2], [-3,0,2]]
         chordP = "<0 0 0 0 0 0 0 1 2 2 3 4 5 5 6 7 7 7 8 9 10 10 10 11>"
+        arpeggio = arp noteLength arpP chords baseP $ chordP
 
 -- Notes
 
