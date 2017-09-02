@@ -1,14 +1,13 @@
--- Imports
+-- Imports & Config
 
-import Data.Maybe
-import Sound.Tidal.MIDI.Context
+import Sound.Tidal.Additions
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Chords as Chords
 import qualified Sound.Tidal.Scales as Scales
 
--- Config
-
 cps (50/60/3)
+
+import Sound.Tidal.MIDI.Context
 
 devices <- midiDevices
 m1 <- midiStream devices "Pro24 MIDI" 1 synthController
@@ -47,54 +46,14 @@ d1
       ]
   ] # s "supervibe" # legato 1.1
 
--- Phase shifting (for inspiration):
-d1 $ stack [ (((discretise 8 $ slow 48 $ run 12)/12) ~> ) $ sound "cp ~ cp ~",
-    sound "sn:2" ]
-
 -- Melodies & Harmonics
 
-inScale :: [Int] -> Int -> Pattern Int -> Pattern Int
-inScale scale transposition = fmap noteInScale
-  where octave x = x `div` length scale
-        noteInScale x = (scale !!! x) + 12 * octave x + transposition
 abMinor = inScale Scales.minor 8
 ebMinor = inScale Scales.minor 3 -- Dominant
 cbMajor = inScale Scales.major (-1) -- Relative
 gbMajor = inScale Scales.major 6 -- Dominant of relative
 csharpMinor = inScale Scales.minor 1 -- Subdominant
 inKey = abMinor
-harmonized :: Num a => a -> Pattern a -> Pattern a
-harmonized n = superimpose $ fmap (+ n)
-inversed :: Num a => Pattern a -> Pattern a
-inversed = fmap (* (-1))
-octShift :: Num a => Pattern a -> Pattern a -> Pattern a
-octShift octaveP p = (+) <$> p <*> ((* 12) <$> octaveP)
-toBass :: Num a => Rational -> Pattern a -> Pattern a
-toBass cycles p = fast cyclesP $ stack [rotR (i/cycles) $ octShift (-3) $ zoom (zoomArc i) p | i <- [0..cycles-1]]
-  where cyclesP = return cycles
-        zoomArc i = (i/cycles, (i/cycles) + 1/4/cycles)
-withBass :: Num a => Rational -> Pattern a -> Pattern a
-withBass = superimpose . toBass
-groupByTime' :: Pattern a -> Pattern [a]
-groupByTime' p = Pattern $ \(s, e) -> groupByTime $ segment' $ arc p (s, e)
-select :: Parseable a => Num a => Pattern a -> Pattern Int -> Pattern a
-select harmonyP selectP = (\idx xs -> xs !!! idx + 12 * octave idx xs) <$> selectP <*> groupByTime' harmonyP
-  where octave idx xs = fromIntegral $ idx `div` length xs
-arp :: Num a => Time -> [Int] -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
-arp noteDur arp chords = arpenchord noteDur expandedChords
-  where expandedChords = map (expandChord arp) chords
-expandChord :: Num a => [Int] -> [a] -> [a]
-expandChord selections chord = map select selections
-  where notesInChord = length chord
-        octave idx = fromIntegral $ idx `div` notesInChord
-        select idx = chord !!! idx + octave idx * 7
-flatpat' :: Num a => Time -> Pattern [a] -> Pattern a
-flatpat' noteDur p = stack [rotR (noteDur * fromIntegral i) $ unMaybe $ fmap (`maybeInd` i) p | i <- [0..24]]
-  where maybeInd xs i | i < length xs = Just $ xs !!! i
-                      | otherwise = Nothing
-        unMaybe = (fromJust <$>) . filterValues isJust
-arpenchord :: Num a => Time -> [[a]] -> Pattern a -> Pattern Int -> Pattern a
-arpenchord noteDur chords transP chordP = flatpat' noteDur $ Chords.chordate chords <$> transP <*> chordP
 melodyA1 :: Pattern Int
 melodyA1 = inKey $ cat
   [ "0@2 [2 1] 0 [-2 0] [2 1]"
