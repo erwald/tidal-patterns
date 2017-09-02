@@ -86,7 +86,7 @@ melodyChordArp noteDuration brokenChord = inKey $ arp melodyChordProgression not
 -- Notes
 
 -- Exposition       -> Development                -> Recapitulation
--- Mel#1  -> Mel#2  -> Arp    harmonized   Euler  -> Mel#1 & Mel#2
+-- Mel#1  -> Mel#2  -> Euler     Arp   harmonized -> Mel#1 & Mel#2
 -- Ab min -> C# min -> Gb maj -> Cb maj -> Eb min -> Ab min
 --
 -- Nord:31
