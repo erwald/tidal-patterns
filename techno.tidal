@@ -1,0 +1,49 @@
+-- Imports & Config
+
+import Sound.Tidal.Additions
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (130/60/4)
+
+-- Silence
+
+hush
+
+m1 silence
+m2 silence
+
+-- Composition
+
+d1 $ stack
+  [ sound "[909 808:1]*4"
+  , e 7 16 $ sound "bd:3" # cutoff 40
+  -- , every 4 (|+| speed (scale 1 1.1 sine)) $ sound "hh:14*8"
+  -- , every 8 rev $ sound "{[808:3? 808:3](3,8)} {[808:5? 808:5](5,8)}"
+  ]
+
+theScale = inScale Scales.minor (-3) . fmap (+ 1)
+chords = "[0,3,6] [0,4,6]"
+
+d3 $ slow 12 $ note (octShift (-2) $ theScale $ select chords "{0(7,8)}%2")
+  # s "supercomparator"
+  # bpf 1000
+  # legato 1.5
+
+d4 $ note (always (octShift (-1))
+  $ theScale
+  $ superimpose (fmap (+ 5) $ phaseShift 16 2)
+  $ select chords (e 5 8 $ "~ -2 -1"))
+  # s "supergong"
+  # bpf 300
+  # legato 3
+  # delay 0.2
+  # delaytime (1/3)
+
+d5 $ note
+  $ theScale
+  $ arp (1/4/6) [1..3] [[0,3,6], [0,4,6]] "0" "0 1"
+  # s "supervibe"
+  # cutoff 2000
+  # legato 1
