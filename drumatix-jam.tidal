@@ -1,0 +1,32 @@
+-- Imports & Config
+
+import Sound.Tidal.Additions
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (20/60/4)
+
+import Sound.Tidal.MIDI.Context
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+
+-- Silence
+
+hush
+m1 silence
+
+-- Composition
+
+-- d1 $ stack [
+--     (sometimes ((1/16) ~>)) $ sometimes (linger (1/4)) $ iter 8 $ e 18 32 $ sound "808:2*4 ~",
+--     sound "house:3*8",
+--     (((discretise 8 $ slow 48 $ run 16)/16) ~> ) $ e 11 16 $ sound "[hh:5 ~]*2"
+-- ]
+
+m1 $ stack [
+    degradeBy 1 $ (sometimes ((1/16) ~>)) $ sometimes (linger (1/4)) $ iter 8 $ e 18 32 $ n "-16*4 ~",
+    n "-14*2",
+    degradeBy 1 $ (((discretise 8 $ slow 48 $ run 16)/16) ~> ) $ e 11 16 $ n "[-15 ~]*2"
+]

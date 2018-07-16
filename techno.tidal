@@ -7,43 +7,76 @@ import qualified Sound.Tidal.Scales as Scales
 
 cps (130/60/4)
 
+import Sound.Tidal.MIDI.Context
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+m2 <- midiStream devices "Pro24 MIDI" 2 synthController
+m3 <- midiStream devices "Pro24 MIDI" 3 synthController
+m4 <- midiStream devices "Pro24 MIDI" 6 synthController
+
 -- Silence
 
 hush
-
 m1 silence
 m2 silence
+m3 silence
+m4 silence
 
 -- Composition
 
-d1 $ stack
-  [ sound "[909 808:1]*4"
+scaled = inScale Scales.minor (0) . fmap (subtract 0)
+chords = slow 6 $ "[0,3,6]@2 [1,4,6] [1,3,6]"
+
+do
+  m1 $ stack [
+    -- note $ octShift (3) $ select melodyChordProgression (inversed "[0 2 1 2 -2 -1](19,24)")
+    -- note $ octShift (1) $ scaled $ "~ 0"
+    -- note $ every 7 (fast 2) $ every 5 (iter 4) $ sometimes (octShift (0)) $ octShift (1) $ slow 2 $ select chords "[0?](3,8)"
+    -- note $ degrade $ sometimes (octShift (-1)) $ octShift (2) $ e 3 8 $ arp chords (1/3/1) (Custom [0,4,3,2,1]),
+    -- note $ sometimes (octShift (0)) $ octShift (1) $ slow 2 $ e 5 8 $ scaled $ select chords "0 1 0 1 3"
+    -- note $ sometimes (octShift (0)) $ octShift (1) $ slow 2 $ scaled $ arp chords (1/4/1) (Up 1)
+    ]
+  m2 $ stack [
+      -- note $ octShift (-1) $ melodyA1,
+      -- note $ octShift (-1) $ melodyA2
+      -- note $ octShift (-3) $ select melodyChordProgression (phaseShift 24 1 (harmonized 2 "[4 5](19,24)"))
+      -- note $ never (octShift (0)) melodyB1,
+      -- note $ always (octShift 0) $ scaled $ arp chords (1/4/2) (UpDown 12)
+      -- note $ octShift (0) $ scaled $ e 3 8 $ chords
+      -- note $ octShift (-1) $ melodyChordArp (1/3/4) (UpDown 12)
+    ]
+  m4
+    -- $ iter "<4 3 2 1>"
+    -- $ every 5 (zoom (0.25, 1.0))
+    -- $ scramble 6
+    $ swing 4
+    $ stack [
+      -- midinote $ "36*2 ~",
+      -- midinote $ "[40](5,8)"
+      -- midinote $ "[~ ~ 41](7,8)"
+      -- midinote $ "[45?]*8",
+      -- midinote $ "[~ 46]*2",
+      -- slow 3 $ midinote $ "[~ 44](3,8)",
+      -- slow 2 $ midinote $ "[42*5](3,8) [~ 42]"
+    ]
+
+-- 36  BassDrum1
+-- 37  BassDrum2
+-- 38  SnareDrum1
+-- 39  SnareDrum2
+-- 40  LowTom
+-- 41  HighTom
+-- 42  RimShot
+-- 43  HandClap
+-- 44  Cymbal
+-- 45  Open Hihat
+-- 46  Closed Hihat
+
+d1 $ stack [
+  sound "[909 ~]*4"
   , e 7 16 $ sound "bd:3" # cutoff 40
-  -- , every 4 (|+| speed (scale 1 1.1 sine)) $ sound "hh:14*8"
-  -- , every 8 rev $ sound "{[808:3? 808:3](3,8)} {[808:5? 808:5](5,8)}"
+  -- , every 8 (jux rev) $ sound "[~ cp]*2"
   ]
 
-theScale = inScale Scales.minor (-3) . fmap (+ 1)
-chords = "[0,3,6] [0,4,6]"
-
-d3 $ slow 12 $ note (octShift (-2) $ theScale $ select chords "{0(7,8)}%2")
-  # s "supercomparator"
-  # bpf 1000
-  # legato 1.5
-
-d4 $ note (always (octShift (-1))
-  $ theScale
-  $ superimpose (fmap (+ 5) $ phaseShift 16 2)
-  $ select chords (e 5 8 $ "~ -2 -1"))
-  # s "supergong"
-  # bpf 300
-  # legato 3
-  # delay 0.2
-  # delaytime (1/3)
-
-d5 $ note
-  $ theScale
-  $ arp (1/4/6) [1..3] [[0,3,6], [0,4,6]] "0" "0 1"
-  # s "supervibe"
-  # cutoff 2000
-  # legato 1
+d2 $ silence -- $ spread (rarely $) [fast 2, scramble 2, linger (1/6)] $ sound "hh:2(5,8)"

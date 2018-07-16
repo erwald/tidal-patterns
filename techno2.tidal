@@ -1,0 +1,56 @@
+-- Imports & Config
+
+import Sound.Tidal.Additions
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (110/60/4)
+
+import Sound.Tidal.MIDI.Context
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+m2 <- midiStream devices "Pro24 MIDI" 2 synthController
+m3 <- midiStream devices "Pro24 MIDI" 3 synthController
+m4 <- midiStream devices "Pro24 MIDI" 6 synthController
+
+-- Silence
+
+hush
+m1 silence
+m2 silence
+m3 silence
+m4 silence
+
+-- Composition
+
+scaled = inScale Scales.minor (3) . fmap (subtract 4)
+chords = slow 9 $ "[0,3,6]@2 [1,4,6] [1,3,6] [-1,1,4] [1,3,6]"
+
+do
+  m1 $ stack [
+    -- note $ sometimes (octShift (0)) $ octShift (0) $ scaled $ arp chords (1/4/4) (Custom [0])
+    ]
+  m4
+    $ stack [
+      -- midinote $ "[36*2] ~ 36 [~ 36](3,4)",
+      -- midinote $ "40*8",
+      -- midinote $ "[[~ 38] ~ [38]*2 ~ [38]](8,16)",
+      -- midinote $ "[~ 43]*2",
+      -- midinote $ "[~ 45 ~ 45 45](6,16)",
+      -- midinote $ "[46]*16",
+      -- slow 3 $ midinote $ "[42,44?](9,16)"
+    ]
+
+-- 36  BassDrum1
+-- 37  BassDrum2
+-- 38  SnareDrum1
+-- 39  SnareDrum2
+-- 40  LowTom
+-- 41  HighTom
+-- 42  RimShot
+-- 43  HandClap
+-- 44  Cymbal
+-- 45  Open Hihat
+-- 46  Closed Hihat

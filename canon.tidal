@@ -1,0 +1,28 @@
+-- Imports & Config
+
+import Sound.Tidal.Additions
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (100/60/3)
+
+import Sound.Tidal.MIDI.Context
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+m2 <- midiStream devices "Pro24 MIDI" 2 synthController
+
+-- Silence
+
+hush
+
+m1 silence
+m2 silence
+
+-- Composition
+
+d1
+  $ stack
+    [ note [0, 0, 0, 0]
+  ] # s "supermandolin" # legato 1.1

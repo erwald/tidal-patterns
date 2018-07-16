@@ -1,0 +1,45 @@
+-- Imports & Config
+
+import Sound.Tidal.Additions
+import Sound.Tidal.Utils
+import qualified Sound.Tidal.Chords as Chords
+import qualified Sound.Tidal.Scales as Scales
+
+cps (120/60/4)
+
+import Sound.Tidal.MIDI.Context
+
+devices <- midiDevices
+m1 <- midiStream devices "Pro24 MIDI" 1 synthController
+m2 <- midiStream devices "Pro24 MIDI" 2 synthController
+m3 <- midiStream devices "Pro24 MIDI" 3 synthController
+m4 <- midiStream devices "Pro24 MIDI" 4 synthController
+
+-- Silence
+
+hush
+m1 silence
+m2 silence
+m3 silence
+m4 silence
+
+-- Composition
+
+chord :: Pattern Double
+chord = fmap fromIntegral $ inScale Scales.major 4 $ "[0,2,4]"
+
+do
+    m1 $ slow 8 $ (n
+        $ octShift (-1) $ select chord "0@3 ~") # legato 1.0
+    m2 $ slow 8 $ (n
+        $ octShift (1) $ (sometimes ((1/16) ~>)) $ arp chord (1/8) (Down 5)) # legato 1.0
+    m3 $ slow 8 $ (n
+        $ octShift (-1) $ phaseShift 3 1 $ select chord "1 0 2 [5 4] 2@2 -2 -1") # legato 1.0
+    m4 $ slow 8 $ (n
+        $ octShift (0) $ e 13 16 $ select chord "0 [[-4 -3] -2 -1 1]") # legato 1.0
+
+-- d1 $ stack [
+--     slow 8 $ degradeBy 0 $ (sometimes ((1/16) ~>)) $ sometimes (linger (1/4)) $ iter 8 $ e 18 32 $ n $ octShift (-2) $ select chord "2 2 2 2 ~",
+--     n $ octShift (-2) $ arp chord (1/2) (UpDown 8),
+--     slow 8 $ degradeBy 0.5 $ phaseShift 16 3 $ e 11 16 $ n $ octShift (-2) $ select chord "[0 ~] [1 ~]"
+-- ] # s "supersaw" # legato 1.1
